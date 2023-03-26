@@ -2,40 +2,72 @@
 
 Unikraft port of [embedded-gcov](https://github.com/nasa-jpl/embedded-gcov).
 
-## Initialization and Termination
+## Step-by-step Instructions
 
-Initialization of gcov is done transparently to the application. `lib-embedded-gcov` adds the required GCC options for coverage, and at runtime `__gcov_init()` is automatically call when Unikraft boots via constructors.
+Here you can find step-by-step instructions on obtaining coverage information for a Unikraft application.
 
-To dump the coverage data you need to update the application to manually call `__gcov_exit()`.
+For more information, see the documentation provided by [embedded-gcov](https://github.com/nasa-jpl/embedded-gcov).
 
-## Collecting Coverage Results
+### Step 1: Prepare the application
 
-embedded-gcov provides three types of output:
-- Binary file
-- Memory
-- Serial console
+Initialization of gcov is done transparently to the application. `lib-embedded-gcov` adds the required GCC options for coverage, and at runtime, `__gcov_init()` is automatically called when Unikraft boots via constructors. Therefore no changes are required for initialization. However, if coverage collection must start at a later point, one can modify the application to call `gcov_clear_counters()` manually.
 
-At this moment `lib-gcov-embedded` supports only serial console output.
+On the other hand, it is necessary to modify the application to call `__gcov_exit()` manually. This function causes `lib-embedded-gcov` to gather and output coverage information using the selected output method.
 
-### Serial Console Output
+### Step 2: Select output method
 
-To obtain coverage results via the console you need to dump the console output into a file. With QEMU this is possible by configuring the serial device to log all output into a file:
+In the `embedded-gcov` section of Kconfig, select the output method to use:
+- `Console`: Writes coverage data to console output.
+- `File`: Writes coverage data to a binary file.
+    - This requires the application to provide implementations for `open()`, `write()`, `close()`. The easiest way to do this is to build your application with [lib-musl](https://github.com/unikraft/lib-musl), which will provide these primitives.
+    - This also requires a filesystem. One possibility is to use 9pfs on QEMU. In Kconfig:
+        - In `plat` -> `kvm` -> `virtio` select:
+            - `virtio PCI device support`
+            - `virtio 9P device`
+        - In `lib` -> `vfscore` select:
+            - `Default root filesystem (9PFS)`
+            
+### Step 3: Run the application
+
+**Console output:**
+On QEMU, you can obtain the console output by passing the `logfile` parameter to the character device that implements the serial output:
 ```
--chardev stdio,id=char0,logfile=serial.log,signal=off -serial chardev:char0
+ -chardev stdio,id=char0,logfile=serial.log,signal=off -serial chardev:char0
+```
+*NOTE*: It is essential not to use `-nographic` option here because that clashes with the redirection of standard output.
+
+This QEMU run will dump console output into a text file named `serial.log`.
+
+**Binary file output:**
+Following the previous example with 9pfs and QEMU:
+- Create a directory that will serve as the mount point of the filesystem:
+   `mkdir fs0`
+- Configure 9pfs on QEMU:
+      ```
+      -fsdev local,id=myid,path=$(pwd)/fs0,security_model=none
+      -device virtio-9p-pci,fsdev=myid,mount_tag=rootfs,disable-modern=on,disable-legacy=off
+      ```
+### Step 4: Generate coverage report
+
+You must process the output to obtain coverage results in a pleasant viewing fashion. `lib-embedded-gcov` provides the `gcov_process.sh` script for that, which is essentially a wrapper around the tools provided by `embedded-gcov`.
+
+Before executing the script below make sure you have the required dependencies installed, that is:
+- `dox2unix`
+- `lcov`
+
+With the dependencies installed, invoke `gcov_process.sh` with parameters depending on the output method selected.
+
+**Console output:**
+```bash
+lib-embedded-gcov/scripts/gcov_process.sh -c <console_output> <build_directory>
 ```
 
-The console output then needs to be processed into an lcov report. `lib-embedded-gcov` provides the `gcov_process.sh` script for that, which is essentially a wrapper around the tools provided by `embedded-gcov`.
-
-Before executing the script make sure you have the required dependencies installed, that is:
-- dox2unix
-- lcov
-
-With dependencies installed, execute the script as:
-```
-lib-embedded-gcov/scripts/gcov_process.sh <build_directory> <console_log>
+**Binary file**
+```bash
+lib-embedded-gcov/scripts/gcov_process.sh -b <binary_output> <build_directory>
 ```
 
-The script will generate an lcov report and provide a link as shown below.
+`gcov_process.sh` will generate a lcov report and provide a link, as shown below:
 ```
 ...
 Writing directory view page.
@@ -45,4 +77,3 @@ Overall coverage rate:
 
 lcov report in file:///home/mpp/devel/unikraft_oss/uk_embedded-gcov/app-helloworld/build/libembeddedgcov/origin/results/html/index.html
 ```
-
