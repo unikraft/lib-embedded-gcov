@@ -35,10 +35,21 @@ config LIBEMBEDDEDGCOV_OUTPUT_SERIAL_HEXDUMP
 	bool "Console"
 config LIBEMBEDDEDGCOV_OUTPUT_BINARY_FILE
 	bool "File"
+config LIBEMBEDDEDGCOV_OUTPUT_BINARY_MEMORY
+	bool "Memory"
 endchoice
 
 config LIBEMBEDDEDGCOV_OUTPUT_BINARY_FILENAME
 	depends on LIBEMBEDDEDGCOV_OUTPUT_BINARY_FILE
 	string "Filename for coverage output"
+
+config LIBEMBEDDEDGCOV_OUTPUT_BINARY_MEMORY_ADDRESS
+	depends on LIBEMBEDDEDGCOV_OUTPUT_BINARY_MEMORY
+	hex "Address for coverage output"
+	help 
+		Address in memory where coverage data will be written to. 
+		Assumes memory is already mapped.
+	default 0x42000000
+	
 
 endif

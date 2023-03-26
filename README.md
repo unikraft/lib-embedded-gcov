@@ -26,7 +26,9 @@ In the `embedded-gcov` section of Kconfig, select the output method to use:
             - `virtio 9P device`
         - In `lib` -> `vfscore` select:
             - `Default root filesystem (9PFS)`
-            
+- `Memory`: Writes coverage data into memory.
+    - `Address for coverage output` - The address to which the coverage results will be written. This option requires that the application has already mapped a region of sufficient size at this address.
+
 ### Step 3: Run the application
 
 **Console output:**
@@ -47,6 +49,17 @@ Following the previous example with 9pfs and QEMU:
       -fsdev local,id=myid,path=$(pwd)/fs0,security_model=none
       -device virtio-9p-pci,fsdev=myid,mount_tag=rootfs,disable-modern=on,disable-legacy=off
       ```
+
+**Memory output:**
+
+After `__gcov_exit()` is called, you can dump the coverage data into a file. The `gcov_output_buffer` symbol contains the base pointer of coverage memory, and the index of the last byte of coverage data will be located at `gcov_output_buffer + gcov_output_index`.
+
+One way to extract coverage information is to attach to the running program with GDB and issue the following commands:
+```
+dump memory memdump.bin gcov_output_buffer gcov_output_buffer+gcov_output_index
+```
+This will dump coverage data into a binary file named `memory.bin`.
+
 ### Step 4: Generate coverage report
 
 You must process the output to obtain coverage results in a pleasant viewing fashion. `lib-embedded-gcov` provides the `gcov_process.sh` script for that, which is essentially a wrapper around the tools provided by `embedded-gcov`.
@@ -62,7 +75,7 @@ With the dependencies installed, invoke `gcov_process.sh` with parameters depend
 lib-embedded-gcov/scripts/gcov_process.sh -c <console_output> <build_directory>
 ```
 
-**Binary file**
+**Binary file / Memory output:**
 ```bash
 lib-embedded-gcov/scripts/gcov_process.sh -b <binary_output> <build_directory>
 ```
