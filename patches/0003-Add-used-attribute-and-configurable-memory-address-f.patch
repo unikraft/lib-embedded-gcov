@@ -1,0 +1,32 @@
+From e936e147ba1d31c996217b644ec7e33b5549bc3b Mon Sep 17 00:00:00 2001
+From: Eduard Mihailescu <mihailescu.eduard@gmail.com>
+Date: Sat, 22 Apr 2023 12:13:45 +0300
+Subject: [PATCH] Add 'used' attribute and configurable memory address for
+ `gcov_output_buffer`
+
+---
+ code/gcov_public.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/code/gcov_public.c b/code/gcov_public.c
+index a3e0461..bdbd96e 100644
+--- a/code/gcov_public.c
++++ b/code/gcov_public.c
+@@ -74,8 +74,12 @@ typedef unsigned int u32;
+ /* You need to set the output buffer pointer to your memory block */
+ /* Size used will depend on size and complexity of source code
+  * that you have compiled for coverage. */
+-static unsigned char *gcov_output_buffer = (unsigned char *)(0x42000000);
+-static gcov_unsigned_t gcov_output_index;
++#ifndef BUFFER_ADDRESS
++static unsigned char __attribute__((used)) *gcov_output_buffer = (unsigned char *) 0x42000000;
++#else
++static unsigned char __attribute__((used)) *gcov_output_buffer = (unsigned char *) BUFFER_ADDRESS;
++#endif // BUFFER_ADDRESS
++static gcov_unsigned_t __attribute__((used)) gcov_output_index;
+ #endif // GCOV_OPT_OUTPUT_BINARY_MEMORY
+
+ typedef struct tagGcovInfo {
+--
+2.34.1
+

@@ -1,0 +1,46 @@
+From 9fa329dd092cfd19274bb6a3e6944ca8fa5095f0 Mon Sep 17 00:00:00 2001
+From: Eduard Mihailescu <mihailescu.eduard@gmail.com>
+Date: Sun, 26 Mar 2023 11:16:24 +0300
+Subject: [PATCH] Fix division bug
+ when writing the data byte count.
+
+Signed-off-by: Eduard-Florin Mihailescu <mihailescu.eduard@gmail.com>
+---
+ code/gcov_public.c | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/code/gcov_public.c b/code/gcov_public.c
+index 94aaff4..a3e0461 100644
+--- a/code/gcov_public.c
++++ b/code/gcov_public.c
+@@ -304,11 +304,11 @@ void __gcov_exit(void)
+
+         /* write the data byte count */
+         /* we don't know endianness, so use division for consistent MSB first */
+-        bf = (unsigned char)(bytesNeeded / 16777216);
++        bf = (unsigned char)(bytesNeeded >> 24);
+         (void)GCOV_WRITE_BYTE(file, bf);
+-        bf = (unsigned char)(bytesNeeded / 65536);
++        bf = (unsigned char)(bytesNeeded >> 16);
+         (void)GCOV_WRITE_BYTE(file, bf);
+-        bf = (unsigned char)(bytesNeeded / 255);
++        bf = (unsigned char)(bytesNeeded >> 8);
+         (void)GCOV_WRITE_BYTE(file, bf);
+         bf = (unsigned char)(bytesNeeded);
+         (void)GCOV_WRITE_BYTE(file, bf);
+@@ -331,9 +331,9 @@ void __gcov_exit(void)
+
+         /* store the data byte count */
+         /* we don't know endianness, so use division for consistent MSB first */
+-        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded / 16777216);
+-        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded / 65536);
+-        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded / 255);
++        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded >> 24);
++        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded >> 16);
++        gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded >> 8);
+         gcov_output_buffer[gcov_output_index++] = (unsigned char)(bytesNeeded);
+
+         /* copy the data */
+--
+2.34.1
+
