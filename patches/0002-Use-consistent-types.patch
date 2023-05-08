@@ -1,0 +1,29 @@
+From a3e60bce495397005c093a2a905b65e0baabdbee Mon Sep 17 00:00:00 2001
+From: Michalis Pappas <michalis@unikraft.io>
+Date: Mon, 8 May 2023 09:08:09 +0200
+Subject: [PATCH] Use consistent types
+
+Replace UINT32 in the function declaration of __gcov_call_constructors
+with u32 which is used in the rest of the codebase.
+
+Signed-off-by: Michalis Pappas <michalis@unikraft.io>
+---
+ code/gcov_public.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/code/gcov_public.c b/code/gcov_public.c
+index 94aaff4..98e6fc5 100644
+--- a/code/gcov_public.c
++++ b/code/gcov_public.c
+@@ -203,7 +203,7 @@ void __gcov_call_constructors(void) {
+     while (ctor != &__ctor_end) {
+         void (*func)(void);
+ 
+-        func = (void ( *)(void))(*(UINT32 *)ctor);
++        func = (void ( *)(void))(*(u32 *)ctor);
+ 
+         func();
+         ctor++;
+-- 
+2.34.1
+
